@@ -7,7 +7,6 @@ def get_data(config_path):
     config=read_config(config_path)
     data_path=config["data_source"]["s3_source"]
     df=pd.read_csv(data_path, encoding="utf-8")
-    print(df.head())
     return df
 
 def read_config(config_path):
