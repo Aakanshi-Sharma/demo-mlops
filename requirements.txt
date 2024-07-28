@@ -1,7 +1,10 @@
+# local packages
+-e .
+
 dvc
 dvc[gdrive]
-sklearn
+scikit-learn
 pandas
-yaml
+pyyaml
 pytest
 tox
