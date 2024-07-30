@@ -8,3 +8,4 @@ pandas
 pyyaml
 pytest
 tox
+flake8
