@@ -5,11 +5,11 @@ import joblib
 import numpy as np
 
 params_path="params.yaml"
-schema_path=os.path.join("prediction_service", "schema_in.json")
+schema_path=os.path.join("prediction_service", "schema_min_max.json")
 
 
 class NotInRange(Exception):
-    def __init__(self, message="Not in range"):
+    def __init__(self, message="Not in Range"):
         self.message = message
         super().__init__(self.message)
 
@@ -68,7 +68,11 @@ def validate_input(dict_request):
     return True
 
 def form_response(dict_request):
-    pass
+    if validate_input(dict_request):
+        data=dict_request.values()
+        data =[list(map(float, data))]
+        response=predict(data)
+        return response
 
 def api_response(dict_request):
     try:
