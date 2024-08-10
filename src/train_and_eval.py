@@ -9,6 +9,8 @@ from get_data import read_config
 import argparse
 import json
 import joblib
+import mlflow
+from urllib.parse import urlparse
 
 
 def eval_metrics(y_true, y_pred):
@@ -34,40 +36,33 @@ def train_and_eval(config_path):
     y_train= train[target_col]
     y_test= test[target_col]
 
-    model=ElasticNet(alpha=alpha, l1_ratio=l1_ratio, random_state=random_state)
-    model.fit(x_train, y_train)
-    y_pred=model.predict(x_test)
-    rmse, mae, r2=eval_metrics(y_test, y_pred)
-    print("mse : ", rmse, "mae : ", mae, "r2 : ", r2)
+################ MLFLOW #############################
 
-    scores_path=config["reports"]["scores"]
-    params_path=config["reports"]["params"]
+    mlflow_config=config["mlflow_config"]
+    remote_server_uri=mlflow_config["remote_server_uri"]
 
-    with open(scores_path, "w") as f:
-        scores={
-            "rmse" : rmse,
-            "mae":mae,
-            "r2":r2
-        }
-        json.dump(scores, f, indent=4)
+    mlflow.set_tracking_uri(remote_server_uri)
+    mlflow.set_experiment(mlflow_config["experiment_name"])
 
-    with open(params_path, "w") as f:
-        params={
-            "alpha":alpha,
-            "l1_ratio":l1_ratio,
-            "random_state":random_state
-        }
-        json.dump(params, f, indent=4)
+    with mlflow.start_run(run_name=mlflow_config["run_name"]) as mlops_run:
 
-    os.makedirs(model_dir, exist_ok=True)
-    model_path=os.path.join(model_dir,"model.joblib")
-    joblib.dump(model, model_path)
+        model=ElasticNet(alpha=alpha, l1_ratio=l1_ratio, random_state=random_state)
+        model.fit(x_train, y_train)
+        y_pred=model.predict(x_test)
+        rmse, mae, r2=eval_metrics(y_test, y_pred)
 
+        mlflow.log_param("alpha", alpha)
+        mlflow.log_param("l1_ratio",l1_ratio)
+        mlflow.log_param("random_state",random_state)
+        mlflow.log_metric("rmse" ,rmse)
+        mlflow.log_metric("mae",mae)
+        mlflow.log_metric("r2",r2)
 
-
-
-
-
+        tracking_url_type_store=urlparse(mlflow.get_artifact_uri()).scheme
+        if tracking_url_type_store !="file":
+            mlflow.sklearn.log_model(model, "model", registered_model_name=mlflow_config["registered_model_name"])
+        else:
+            mlflow.sklearn.load_model(model, "model")
 
 
 
